@@ -2,29 +2,118 @@
 title: "HW_9-27"
 author: "Nolan Wark"
 date: "9/25/2022"
-output: html_document
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(nycflights13)
+library(ggplot2)
 ```
 
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+#Question 1
 
-```{r cars}
-summary(cars)
+How many flights have a missing dep_time?  
+```{r q1a}
+filter(flights, is.na(dep_time)) %>% 
+  summarise(num_missing = n())
+```
+8255
+
+
+What other variables are missing?
+```{r q1b}
+names(which(colSums(is.na(flights))>0))
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
+What might these rows represent?
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+These row are most likely either canceled flights because there is no depature time and no arrival time, or flights that had to change the destination mid flight due to there being a departure time but not an arrival time.
+
+
+
+
+
+#Question 2
+
+Currently dep_time and sched_dep_time are convenient to look at, but hard to compute with because they’re not really continuous numbers. Convert them to a more convenient representation of number of minutes since midnight.
+```{r q2}
+new_flights = flights %>% 
+  mutate(dep_time = 60*(dep_time%/%100) + dep_time%%100,
+         sched_dep_time = 60*(sched_dep_time%/%100) + sched_dep_time%%100)
+
+new_flights
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+
+
+#Question 3
+
+Look at the number of canceled flights per day. Is there a pattern? Is the proportion of canceled flights related to the average delay? Use multiple dyplr operations, all on one line, concluding with ggplot(aes(x= ,y=)) + geom_point()
+
+avg_delay is the average of both departure delay and arrival delay combined
+```{r q3}
+flights %>% 
+  mutate(month_day = paste(month, day, sep = "/")) %>% 
+  group_by(month_day) %>% 
+  summarise(num_cancelled = sum(is.na(dep_delay)),
+            avg_delay = (sum(dep_delay, na.rm = TRUE) + sum(arr_delay, na.rm = TRUE)) / (sum(!is.na(dep_delay)) + sum(!is.na(arr_delay)))) %>% 
+  ggplot(aes(x=num_cancelled, y=avg_delay)) + 
+  geom_point() + 
+  geom_smooth() + 
+  geom_smooth(method = 'lm', color='red', se=FALSE) + 
+  labs(x='Number of Cancelled Flights per Day', y ='Average Delay', title = 'Cancelled Flights per Day vs. Average Delay per Day', subtitle = 'Blue line is smooth line, red line is linear regression line')
+```
+
+There is a positive correlation between the number of cancelled flights per day and the average delay.  The correlation looks to be logarithmic.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
